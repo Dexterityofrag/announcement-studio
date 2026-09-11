@@ -1,0 +1,6 @@
+# The site is the public/ folder — no build step, no dependencies.
+[build]
+  publish = "public"
+
+# public/_headers is Netlify's native format and applies as-is
+# (CSP, nosniff, frame/referrer/permissions policy, cache rules).

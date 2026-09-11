@@ -26,6 +26,8 @@ npx wrangler login
 npm run deploy
 ```
 
+**Netlify** — `netlify.toml` sets publish directory `public` and no build command, so a connected repo works with no dashboard changes. `public/_headers` is Netlify's own format and applies as-is. If a fresh site shows *"This site is private — sign in with an invited Netlify account"*, that is team/site visibility, not a build failure: Site configuration → Access & security → Visibility → **Public**.
+
 **If you would rather use Cloudflare Pages** — connect the repo, set framework preset **None**, build command **empty**, build output directory **`public`**, and leave the deploy command blank. Pages uploads the directory itself; don't call wrangler from a Pages build.
 
 > Why the first build failed: the deploy command ran `wrangler pages deploy`, which hits the **Pages** API. The token injected into the build container (`CLOUDFLARE_API_TOKEN`) is scoped for Workers, so it came back `Authentication error [code: 10000]` — being account Super Administrator doesn't matter, the token's own permissions do. `wrangler deploy` uses the Workers API instead and goes through. Deploying by hand with your own logged-in token would have worked either way.
