@@ -4,6 +4,8 @@ An announcement composer for a workplace platform. You build one announcement â€
 
 Built for the Freespace UI/UX assignment (brief given 7 Sept 2026).
 
+**Figma file:** https://www.figma.com/design/UwBeREMnMmg8XBLrO2L8kX â€” output frames for all three screens, the editor UI, and the system board (breakpoint table, palettes, rationale).
+
 ## Run it
 
 Open `index.html` in a browser. No build step, no dependencies, no network calls.
