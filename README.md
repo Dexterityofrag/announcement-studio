@@ -8,49 +8,39 @@ Built for the Freespace UI/UX assignment (brief given 7 Sept 2026).
 
 ## Run it
 
-Open `index.html` in a browser, or `npm start` to serve it locally on :4173. No build step, no dependencies, no bundler — the only network request is the Google Fonts stylesheet.
+Open `public/index.html` in a browser, or `npm start` to serve it locally on :4173. No build step, no dependencies, no bundler — the only network request is the Google Fonts stylesheet.
 
-## Deploy to Cloudflare Pages
+## Deploy to Cloudflare
 
-It's a static site, so there is nothing to build.
+Static site, nothing to build. It ships as a **Worker with static assets** — assets-only, so there is no Worker script; Cloudflare just serves `public/`.
 
-**From the dashboard (auto-deploys on every push)**
-1. Cloudflare → Workers & Pages → Create → Pages → Connect to Git, pick this repo (authorise the private repo when prompted).
-2. Framework preset **None**, Build command **empty**, Build output directory **`/`**.
-3. Save and Deploy. Pushes to `main` redeploy; other branches get preview URLs.
+**From a connected repo (Workers Builds)**
+- Build command: *empty*
+- Deploy command: `npm run deploy`
+- That runs `wrangler deploy`, which the build environment's token is scoped for.
 
-**From the CLI**
+**From your machine**
 
 ```
 npx wrangler login
 npm run deploy
 ```
 
-`npm run deploy` is `wrangler pages deploy . --project-name broadcast-studio --branch main`; `npm run preview` publishes to a preview branch instead.
+**If you would rather use Cloudflare Pages** — connect the repo, set framework preset **None**, build command **empty**, build output directory **`public`**, and leave the deploy command blank. Pages uploads the directory itself; don't call wrangler from a Pages build.
+
+> Why the first build failed: the deploy command ran `wrangler pages deploy`, which hits the **Pages** API. The token injected into the build container (`CLOUDFLARE_API_TOKEN`) is scoped for Workers, so it came back `Authentication error [code: 10000]` — being account Super Administrator doesn't matter, the token's own permissions do. `wrangler deploy` uses the Workers API instead and goes through. Deploying by hand with your own logged-in token would have worked either way.
 
 ### What ships
 
 | File | Why |
 |---|---|
-| `index.html` | The whole app — markup, styles, logic |
-| `favicon.svg` | Tab icon |
-| `_headers` | Cloudflare Pages headers: CSP (allows Google Fonts, inline styles/script, `data:` images for uploads), `nosniff`, `X-Frame-Options: SAMEORIGIN`, referrer and permissions policy, cache rules |
-| `wrangler.toml` | `pages_build_output_dir = "."` so Wrangler knows the root is the site |
-| `package.json` | The deploy/serve scripts — no dependencies to install |
+| `public/index.html` | The whole app — markup, styles, logic |
+| `public/favicon.svg` | Tab icon |
+| `public/_headers` | CSP (allows Google Fonts, inline styles/script, `data:` images for uploads), `nosniff`, `X-Frame-Options: SAMEORIGIN`, referrer and permissions policy, cache rules |
+| `wrangler.toml` | `[assets] directory = "./public"` — the whole deploy config |
+| `package.json` | `deploy` / `dev` / `start` scripts, no dependencies to install |
 
-No environment variables, no secrets, no server. Uploaded images are read with `FileReader` and never leave the browser.
-
-## What the brief asked for, and where it is
-
-| Brief | In the app |
-|---|---|
-| Image, heading, body, CTA | The four blocks in the left rail, plus an eyebrow for message type |
-| Drag or select an image, then stylise it | Image block: six generated art fields, or drag/drop and upload your own. Fit, focal point, scrim, blur |
-| Stylise heading / body / CTA | Contextual inspector on the right — type scale, weight, alignment, colour, button style, size, radius, full-width behaviour |
-| Output on mobile, web and signage | Top-bar screen switcher. Each is a real device frame with the announcement inside a mock product, not a floating rectangle |
-| Announcement as a widget or full screen | Placement switcher: in-app widget vs full screen, for both mobile and web |
-| "Not the boring square announcement" | Four layouts (full-bleed hero, split, colour field, ticker strip), a palette per announcement, and a carousel that cross-fades colour as you swipe — the Amazon/Myntra behaviour named in the brief |
-| Responsive | One content model, a breakpoint table in the renderer. The size slider scales a step, it never sets a pixel value |
+Keeping the site in `public/` means the README, configs and `.git` are never uploaded. No environment variables, no secrets, no server — uploaded images are read with `FileReader` and never leave the browser.
 
 ## Decisions worth defending
 

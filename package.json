@@ -4,8 +4,8 @@
   "private": true,
   "description": "Announcement composer that renders one message on mobile, web and signage",
   "scripts": {
-    "start": "npx --yes serve . -l 4173",
-    "deploy": "npx --yes wrangler pages deploy . --project-name broadcast-studio --branch main",
-    "preview": "npx --yes wrangler pages deploy . --project-name broadcast-studio --branch preview"
+    "start": "npx --yes serve public -l 4173",
+    "deploy": "npx --yes wrangler deploy",
+    "dev": "npx --yes wrangler dev"
   }
 }

@@ -1,3 +1,7 @@
+# Static site deployed as a Cloudflare Worker with static assets.
+# Assets-only: there is no Worker script, Cloudflare just serves ./public.
 name = "broadcast-studio"
 compatibility_date = "2026-09-11"
-pages_build_output_dir = "."
+
+[assets]
+directory = "./public"
