@@ -8,7 +8,37 @@ Built for the Freespace UI/UX assignment (brief given 7 Sept 2026).
 
 ## Run it
 
-Open `index.html` in a browser. No build step, no dependencies, no network calls.
+Open `index.html` in a browser, or `npm start` to serve it locally on :4173. No build step, no dependencies, no bundler — the only network request is the Google Fonts stylesheet.
+
+## Deploy to Cloudflare Pages
+
+It's a static site, so there is nothing to build.
+
+**From the dashboard (auto-deploys on every push)**
+1. Cloudflare → Workers & Pages → Create → Pages → Connect to Git, pick this repo (authorise the private repo when prompted).
+2. Framework preset **None**, Build command **empty**, Build output directory **`/`**.
+3. Save and Deploy. Pushes to `main` redeploy; other branches get preview URLs.
+
+**From the CLI**
+
+```
+npx wrangler login
+npm run deploy
+```
+
+`npm run deploy` is `wrangler pages deploy . --project-name broadcast-studio --branch main`; `npm run preview` publishes to a preview branch instead.
+
+### What ships
+
+| File | Why |
+|---|---|
+| `index.html` | The whole app — markup, styles, logic |
+| `favicon.svg` | Tab icon |
+| `_headers` | Cloudflare Pages headers: CSP (allows Google Fonts, inline styles/script, `data:` images for uploads), `nosniff`, `X-Frame-Options: SAMEORIGIN`, referrer and permissions policy, cache rules |
+| `wrangler.toml` | `pages_build_output_dir = "."` so Wrangler knows the root is the site |
+| `package.json` | The deploy/serve scripts — no dependencies to install |
+
+No environment variables, no secrets, no server. Uploaded images are read with `FileReader` and never leave the browser.
 
 ## What the brief asked for, and where it is
 

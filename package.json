@@ -1,0 +1,11 @@
+{
+  "name": "broadcast-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Announcement composer that renders one message on mobile, web and signage",
+  "scripts": {
+    "start": "npx --yes serve . -l 4173",
+    "deploy": "npx --yes wrangler pages deploy . --project-name broadcast-studio --branch main",
+    "preview": "npx --yes wrangler pages deploy . --project-name broadcast-studio --branch preview"
+  }
+}

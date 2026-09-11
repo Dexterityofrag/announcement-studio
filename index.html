@@ -1,4 +1,19 @@
-<title>Broadcast Studio</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Broadcast Studio — announcement composer</title>
+<meta name="description" content="Compose one workplace announcement — image, heading, body, CTA — and see it render on mobile, web and 1920x1080 signage. Live WCAG contrast, annotated responsive rules, JSON export.">
+<meta name="author" content="Anurag">
+<meta name="theme-color" content="#E9EBE6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1013" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Broadcast Studio — announcement composer">
+<meta property="og:description" content="One announcement, authored once, rendered on mobile, web and signage.">
+<meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -127,7 +142,7 @@ input[type="color"]{width:28px;height:24px;padding:0;border:1px solid var(--line
     var(--bg);}
 .stage::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--line2) 1px,transparent 1px);background-size:22px 22px;opacity:.35}
 .fit{position:relative;transform-origin:center center}
-.devlabel{position:absolute;left:50%;transform:translateX(-50%);bottom:-30px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
+.devlabel{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
 
 /* device frames */
 .dev{position:relative;background:#0a0d0f;overflow:hidden}
@@ -203,7 +218,23 @@ ol.laws{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px}
 ol.laws b{font-weight:600}
 ol.laws span{color:var(--ink2)}
 @media (max-width:1180px){ .main{grid-template-columns:216px minmax(0,1fr) 260px} }
+/* small screens: the composer stacks — canvas first, panels below */
+@media (max-width:900px){
+  .app{height:auto;min-height:100vh}
+  .topbar{flex-wrap:wrap;gap:10px 12px}
+  .topbar .spacer{flex-basis:100%;height:0}
+  .main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}
+  .stage{order:-1;min-height:66vh}
+  .rail{border-right:0;border-top:1px solid var(--line)}
+  .insp{border-left:0;border-top:1px solid var(--line)}
+  .rail,.insp{overflow:visible}
+  .tabs{position:static}
+  .statusbar{flex-wrap:wrap;gap:4px 12px}
+  .statusbar .sep{display:none}
+}
 </style>
+</head>
+<body>
 <div class="app">
   <header class="topbar">
     <div class="brand"><b>Broadcast Studio</b><span>announcement composer</span></div>
@@ -288,6 +319,7 @@ Overrides: mobile / web / signage</pre>
     <!-- STAGE -->
     <section class="stage" id="stage">
       <div class="fit" id="fit"></div>
+      <span class="devlabel" id="devlabel"></span>
     </section>
 
     <!-- INSPECTOR -->
@@ -523,7 +555,7 @@ function deviceHTML(){
 }
 
 function renderStage(){
-  document.getElementById("fit").innerHTML = deviceHTML()+`<span class="devlabel" id="devlabel"></span>`;
+  document.getElementById("fit").innerHTML = deviceHTML();
   const c=CFG[key()];
   document.getElementById("devlabel").textContent =
     state.device==="mobile"?"iPhone · 375 × 760 pt":state.device==="web"?"Desktop · 1200 × 726":"Signage · 1920 × 1080 · landscape";
@@ -829,3 +861,5 @@ renderAll(); pushHist();
 setInterval(()=>{ if(!state.play) return; if(document.getElementById("dlg").open) return;
   state.active=(state.active+1)%state.slides.length; renderRails(); renderStage(); }, 5000);
 </script>
+</body>
+</html>
