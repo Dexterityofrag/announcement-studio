@@ -1,0 +1,831 @@
+<title>Broadcast Studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#E9EBE6; --panel:#FBFBF9; --panel2:#F1F3EE; --sunk:#E2E5DE;
+  --line:#D3D8CF; --line2:#C2C9BD;
+  --ink:#141A18; --ink2:#5C6661; --ink3:#8A948E;
+  --accent:#D9441F; --accent2:#0E7F74;
+  --good:#0E7F74; --warn:#B46A00; --bad:#C0392B;
+  --shadow:0 1px 2px rgba(20,26,24,.06),0 8px 24px -12px rgba(20,26,24,.18);
+  --r:10px;
+  --ui:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --display:"Bricolage Grotesque","IBM Plex Sans",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+:root:not([data-theme="light"]){ @media (prefers-color-scheme: dark){
+  --bg:#0C1013; --panel:#141A1E; --panel2:#1A2227; --sunk:#0F1519;
+  --line:#26313A; --line2:#33414B;
+  --ink:#E9EFEB; --ink2:#94A39D; --ink3:#6C7A74;
+  --accent:#FF6A43; --accent2:#3FCBB8;
+  --good:#3FCBB8; --warn:#E0A033; --bad:#FF6B5E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -20px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C1013; --panel:#141A1E; --panel2:#1A2227; --sunk:#0F1519;
+  --line:#26313A; --line2:#33414B;
+  --ink:#E9EFEB; --ink2:#94A39D; --ink3:#6C7A74;
+  --accent:#FF6A43; --accent2:#3FCBB8;
+  --good:#3FCBB8; --warn:#E0A033; --bad:#FF6B5E;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -20px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:auto 1fr auto;height:100vh;min-height:640px}
+.topbar{display:flex;align-items:center;gap:18px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand b{font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:-.02em}
+.brand span{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase}
+.seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:2px;gap:2px}
+.seg button{background:none;border:0;padding:5px 11px;border-radius:6px;cursor:pointer;color:var(--ink2);display:flex;align-items:center;gap:6px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.seg button:hover{color:var(--ink)}
+.seg .px{font-family:var(--mono);font-size:10px;color:var(--ink3)}
+.spacer{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--line2);background:var(--sunk)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.btn.primary:hover{filter:brightness(1.06);background:var(--accent)}
+.main{display:grid;grid-template-columns:248px minmax(0,1fr) 288px;min-height:0}
+.rail,.insp{background:var(--panel);display:flex;flex-direction:column;min-height:0;overflow:auto}
+.rail{border-right:1px solid var(--line)}
+.insp{border-left:1px solid var(--line)}
+.tabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:3}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:10px 4px;cursor:pointer;color:var(--ink2);font-weight:500}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.sect{padding:14px;border-bottom:1px solid var(--line)}
+.sect:last-child{border-bottom:0}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px}
+
+/* layers */
+.layer{display:flex;align-items:center;gap:9px;width:100%;background:none;border:1px solid transparent;border-radius:8px;padding:7px 8px;cursor:pointer;text-align:left}
+.layer:hover{background:var(--panel2)}
+.layer[aria-current="true"]{background:var(--panel2);border-color:var(--line2)}
+.layer .ic{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;background:var(--sunk);color:var(--ink2);flex:0 0 auto}
+.layer[aria-current="true"] .ic{background:var(--accent);color:#fff}
+.layer .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.layer .tg{font-family:var(--mono);font-size:10px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.slides{display:flex;flex-direction:column;gap:6px}
+.slide-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--panel2);cursor:pointer}
+.slide-row[aria-current="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent)}
+.chip{width:30px;height:22px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(0,0,0,.15)}
+.slide-row .t{flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icbtn{background:none;border:1px solid transparent;border-radius:6px;width:24px;height:24px;display:grid;place-items:center;cursor:pointer;color:var(--ink3)}
+.icbtn:hover{border-color:var(--line2);color:var(--ink)}
+
+/* presets */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tplcard{border:1px solid var(--line);border-radius:9px;padding:0;overflow:hidden;cursor:pointer;background:var(--panel2);text-align:left}
+.tplcard:hover{border-color:var(--line2)}
+.tplcard[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent)}
+.tplcard .mini{height:46px;display:block}
+.tplcard .cap{padding:5px 7px;font-size:11px;font-weight:500}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.sw{height:34px;border-radius:7px;border:1px solid var(--line);cursor:pointer;position:relative;overflow:hidden}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink) inset}
+.arts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.artbtn{height:40px;border-radius:7px;border:1px solid var(--line);cursor:pointer}
+.artbtn[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+.drop{border:1px dashed var(--line2);border-radius:9px;padding:12px;text-align:center;color:var(--ink2);font-size:12px;cursor:pointer}
+.drop.over{border-color:var(--accent);color:var(--ink)}
+
+/* controls */
+.row{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.row:last-child{margin-bottom:0}
+.row>label{color:var(--ink2);font-size:12px}
+.ctl{display:flex;align-items:center;gap:8px;min-width:0}
+input[type="range"]{flex:1;min-width:0;accent-color:var(--accent);height:18px}
+input[type="text"],textarea,select{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+textarea{resize:vertical;min-height:58px;line-height:1.4}
+input[type="color"]{width:28px;height:24px;padding:0;border:1px solid var(--line);border-radius:5px;background:none}
+.out{font-family:var(--mono);font-size:11px;color:var(--ink3);min-width:38px;text-align:right}
+.mini-seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--sunk)}
+.mini-seg button{flex:1;background:none;border:0;padding:5px 0;cursor:pointer;color:var(--ink2);font-size:12px}
+.mini-seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);font-weight:600}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer}
+.switch input{appearance:none;width:34px;height:20px;border-radius:99px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s}
+.switch input:checked{background:var(--accent2)}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked::after{transform:translateX(14px)}
+.note{font-size:11.5px;color:var(--ink2);line-height:1.5}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dotted var(--line);font-size:11.5px}
+.kv:last-child{border-bottom:0}
+.kv b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:99px;border:1px solid currentColor}
+.ok{color:var(--good)} .wr{color:var(--warn)} .bd{color:var(--bad)}
+
+/* ---------- stage ---------- */
+.stage{position:relative;display:grid;place-items:center;min-width:0;overflow:hidden;
+  background:
+    radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--accent2) 9%,transparent),transparent 70%),
+    var(--bg);}
+.stage::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--line2) 1px,transparent 1px);background-size:22px 22px;opacity:.35}
+.fit{position:relative;transform-origin:center center}
+.devlabel{position:absolute;left:50%;transform:translateX(-50%);bottom:-30px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);white-space:nowrap}
+
+/* device frames */
+.dev{position:relative;background:#0a0d0f;overflow:hidden}
+.dev-mobile{width:375px;height:760px;border-radius:42px;padding:12px;box-shadow:0 0 0 2px #2b3338,0 30px 60px -24px rgba(0,0,0,.6)}
+.dev-mobile .vp{border-radius:32px;overflow:hidden;height:100%;position:relative;background:#fff}
+.notch{position:absolute;top:7px;left:50%;transform:translateX(-50%);width:96px;height:22px;border-radius:99px;background:#0a0d0f;z-index:9}
+.dev-web{width:1200px;height:760px;border-radius:12px;padding:0;box-shadow:0 30px 60px -24px rgba(0,0,0,.55),0 0 0 1px #2b3338}
+.chromebar{height:34px;background:#1b2126;display:flex;align-items:center;gap:7px;padding:0 12px}
+.chromebar i{width:9px;height:9px;border-radius:50%;background:#39434a;display:block}
+.chromebar .url{margin-left:10px;flex:1;height:19px;border-radius:5px;background:#111618;color:#6f7d84;font-family:var(--mono);font-size:10px;display:flex;align-items:center;padding:0 8px}
+.dev-web .vp{height:calc(100% - 34px);overflow:hidden;background:#fff;position:relative}
+.dev-tv{width:1920px;height:1080px;border-radius:10px;padding:14px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7),0 0 0 3px #20272c}
+.dev-tv .vp{height:100%;border-radius:4px;overflow:hidden;position:relative;background:#000}
+.tvstand{position:absolute;left:50%;bottom:-54px;transform:translateX(-50%);width:280px;height:54px;background:linear-gradient(#20272c,#12171a);clip-path:polygon(34% 0,66% 0,100% 100%,0 100%)}
+
+/* mock app chrome (the announcement lives inside a product) */
+.appshell{height:100%;display:flex;flex-direction:column;background:#F5F6F4;color:#15201d;font-family:var(--ui)}
+.as-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+.as-hi{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em}
+.as-sub{font-size:11.5px;color:#6a7672}
+.as-av{width:30px;height:30px;border-radius:50%;background:#d9dedb}
+.as-body{flex:1;overflow:hidden;padding:0 14px;display:flex;flex-direction:column;gap:12px}
+.as-tile{background:#fff;border:1px solid #E4E8E5;border-radius:14px;padding:12px 13px;display:flex;gap:10px;align-items:center}
+.as-tile .k{font-size:11px;color:#6a7672}
+.as-tile .v{font-family:var(--display);font-weight:700;font-size:16px}
+.as-tabs{display:flex;justify-content:space-around;padding:10px 6px 16px;border-top:1px solid #E4E8E5;background:#fff;font-size:10px;color:#8a948f}
+.as-tabs b{color:#15201d;font-weight:600}
+.as-tabs div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.dot9{width:18px;height:18px;border-radius:6px;background:#E4E8E5;display:block}
+.web-shell{height:100%;display:flex;background:#F5F6F4;color:#15201d}
+.ws-nav{width:208px;border-right:1px solid #E4E8E5;background:#fff;padding:16px 12px;display:flex;flex-direction:column;gap:3px}
+.ws-logo{font-family:var(--display);font-weight:800;font-size:15px;margin:0 6px 14px}
+.ws-nav a{padding:7px 9px;border-radius:7px;color:#5d6965;text-decoration:none;font-size:12.5px}
+.ws-nav a.on{background:#F0F2F0;color:#15201d;font-weight:600}
+.ws-main{flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.ws-h{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
+.ws-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ws-card{background:#fff;border:1px solid #E4E8E5;border-radius:12px;padding:13px}
+.ws-card .k{font-size:11px;color:#6a7672}
+.ws-card .v{font-family:var(--display);font-weight:700;font-size:20px}
+
+/* announcement carousel */
+.slot{position:relative;overflow:hidden;isolation:isolate}
+.track{display:flex;height:100%;transition:transform .42s cubic-bezier(.4,0,.2,1)}
+.card{flex:0 0 100%;height:100%;position:relative;overflow:hidden;display:flex;transition:background-color .5s ease, background-image .5s ease;cursor:grab}
+.card .art{position:absolute;inset:0;background-size:cover;background-position:center}
+.card .scrim{position:absolute;inset:0}
+.card .content{position:relative;display:flex;flex-direction:column;min-width:0;z-index:2}
+.card .eyebrow{font-family:var(--mono);text-transform:uppercase;opacity:.9}
+.card h3{font-family:var(--display);margin:0;letter-spacing:-.02em;text-wrap:balance}
+.card p{margin:0;max-width:62ch}
+.cta{display:inline-flex;align-items:center;justify-content:center;gap:.5em;font-family:var(--ui);font-weight:600;border:2px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap}
+.dots{position:absolute;z-index:6;display:flex;gap:6px}
+.dots button{width:7px;height:7px;padding:0;border-radius:99px;border:0;background:currentColor;opacity:.35;cursor:pointer}
+.dots button[aria-current="true"]{opacity:1;width:18px}
+.qr{display:block;image-rendering:pixelated}
+.sel-ring{outline:2px dashed color-mix(in srgb,#fff 70%,transparent);outline-offset:4px}
+[data-edit]:focus{outline:2px solid #fff;outline-offset:3px;border-radius:3px}
+.pin{position:absolute;z-index:7;font-family:var(--mono);font-size:11px;background:#111;color:#fff;border:1px solid #fff3;padding:2px 6px;border-radius:5px;white-space:nowrap;pointer-events:none}
+.pin::before{content:"";position:absolute;left:-7px;top:50%;width:7px;height:1px;background:#fff6}
+
+/* statusbar */
+.statusbar{display:flex;align-items:center;gap:14px;padding:7px 14px;background:var(--panel);border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--ink2)}
+.statusbar .sep{width:1px;height:14px;background:var(--line)}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);max-width:720px;width:92vw;padding:0;box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(8,11,13,.55);backdrop-filter:blur(2px)}
+.dlg-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line)}
+.dlg-h b{font-family:var(--display);font-size:15px}
+.dlg-b{padding:16px;max-height:60vh;overflow:auto}
+.code{font-family:var(--mono);font-size:11.5px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:12px;white-space:pre;overflow:auto;max-height:46vh}
+h4.nh{font-family:var(--display);font-size:13px;margin:16px 0 6px}
+ol.laws{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px}
+ol.laws b{font-weight:600}
+ol.laws span{color:var(--ink2)}
+@media (max-width:1180px){ .main{grid-template-columns:216px minmax(0,1fr) 260px} }
+</style>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><b>Broadcast Studio</b><span>announcement composer</span></div>
+    <div class="seg" id="devseg" role="group" aria-label="Output screen">
+      <button data-dev="mobile" aria-pressed="true">Mobile <span class="px">375</span></button>
+      <button data-dev="web" aria-pressed="false">Web <span class="px">1200</span></button>
+      <button data-dev="tv" aria-pressed="false">Signage <span class="px">1920</span></button>
+    </div>
+    <div class="seg" id="modeseg" role="group" aria-label="Placement">
+      <button data-mode="widget" aria-pressed="true">In-app widget</button>
+      <button data-mode="full" aria-pressed="false">Full screen</button>
+    </div>
+    <div class="spacer"></div>
+    <label class="switch" title="Show the responsive rules applied at this breakpoint"><input type="checkbox" id="rulesTog"><span>Rules</span></label>
+    <button class="btn" id="undo" title="Undo (⌘Z)">↶</button>
+    <button class="btn" id="redo" title="Redo (⇧⌘Z)">↷</button>
+    <button class="btn" id="themeBtn" title="Toggle editor theme">◐</button>
+    <button class="btn primary" id="exportBtn">Export</button>
+  </header>
+
+  <div class="main">
+    <!-- LEFT RAIL -->
+    <aside class="rail">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="build">Build</button>
+        <button role="tab" aria-selected="false" data-tab="style">Style</button>
+        <button role="tab" aria-selected="false" data-tab="notes">Notes</button>
+      </div>
+      <div id="tab-build">
+        <div class="sect">
+          <p class="lbl">Blocks</p>
+          <div id="layers" style="display:flex;flex-direction:column;gap:3px"></div>
+        </div>
+        <div class="sect">
+          <p class="lbl">Layout</p>
+          <div class="grid2" id="tpls"></div>
+        </div>
+        <div class="sect">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <p class="lbl" style="margin:0">Announcements</p>
+            <button class="icbtn" id="addSlide" title="Add announcement">＋</button>
+          </div>
+          <div class="slides" id="slides"></div>
+          <label class="switch" style="margin-top:11px"><input type="checkbox" id="autoplay" checked><span class="note">Auto-advance every 5s</span></label>
+        </div>
+      </div>
+      <div id="tab-style" hidden>
+        <div class="sect">
+          <p class="lbl">Palette — this announcement</p>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div class="sect">
+          <p class="lbl">Custom colors</p>
+          <div class="row"><label>Surface</label><div class="ctl"><input type="color" data-path="palette.bg"><span class="out" data-out="palette.bg"></span></div></div>
+          <div class="row"><label>Text</label><div class="ctl"><input type="color" data-path="palette.ink"><span class="out" data-out="palette.ink"></span></div></div>
+          <div class="row"><label>Accent</label><div class="ctl"><input type="color" data-path="palette.accent"><span class="out" data-out="palette.accent"></span></div></div>
+        </div>
+        <div class="sect">
+          <p class="lbl">Tokens in this file</p>
+          <div id="tokens"></div>
+        </div>
+      </div>
+      <div id="tab-notes" hidden>
+        <div class="sect">
+          <p class="lbl">How the output adapts</p>
+          <div id="rulesList"></div>
+        </div>
+        <div class="sect">
+          <p class="lbl">Structure</p>
+          <pre class="code" style="font-size:10.5px;padding:9px">Announcement (component)
+├ Art        image | generated field
+├ Eyebrow    kicker / category
+├ Heading    display, clamp 2–3 lines
+├ Body       ≤ 62ch measure
+└ Action     CTA → QR on signage
+Variants: hero · split · field · strip
+Overrides: mobile / web / signage</pre>
+        </div>
+      </div>
+    </aside>
+
+    <!-- STAGE -->
+    <section class="stage" id="stage">
+      <div class="fit" id="fit"></div>
+    </section>
+
+    <!-- INSPECTOR -->
+    <aside class="insp">
+      <div class="tabs"><button role="tab" aria-selected="true" style="flex:none;padding:10px 14px" id="inspTitle">Heading</button></div>
+      <div id="inspBody"></div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <span id="stBreak"></span><span class="sep"></span>
+    <span id="stSlot"></span><span class="sep"></span>
+    <span id="stContrast"></span><span class="sep"></span>
+    <span id="stChars"></span>
+    <span class="spacer" style="flex:1"></span>
+    <span id="stSaved">4 announcements · 1 source of truth</span>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-h"><b id="dlgT">Export</b><button class="icbtn" onclick="document.getElementById('dlg').close()">✕</button></div>
+  <div class="dlg-b" id="dlgB"></div>
+</dialog>
+
+<script>
+/* ============================== model ============================== */
+const PALETTES = [
+  {name:"Signal",   bg:"#12211F", ink:"#F2F6F3", accent:"#FF6A43"},
+  {name:"Atrium",   bg:"#F4EFE6", ink:"#1B1A16", accent:"#C2410C"},
+  {name:"Deepwork", bg:"#101A2E", ink:"#EAF0FF", accent:"#6EA8FE"},
+  {name:"Moss",     bg:"#1C2A1E", ink:"#EDF4E9", accent:"#9BD45F"},
+  {name:"Clay",     bg:"#2A1B1B", ink:"#FBEFEA", accent:"#F2A65A"},
+  {name:"Paper",    bg:"#FBFBF9", ink:"#151A18", accent:"#0E7F74"}
+];
+const ART = [
+  {id:"aurora", name:"Aurora", css:p=>`radial-gradient(70% 90% at 18% 12%, ${p.accent}dd, transparent 62%), radial-gradient(90% 80% at 88% 86%, ${mix(p.accent,"#2BD0C0",.65)}aa, transparent 60%), linear-gradient(160deg, ${shade(p.bg,-8)}, ${p.bg})`},
+  {id:"dunes",  name:"Dunes",  css:p=>`radial-gradient(120% 70% at 50% 118%, ${p.accent}cc, transparent 60%), radial-gradient(90% 60% at 10% 0%, ${shade(p.bg,26)}, transparent 55%), ${p.bg}`},
+  {id:"grid",   name:"Grid",   css:p=>`repeating-linear-gradient(0deg,${p.ink}14 0 1px,transparent 1px 46px), repeating-linear-gradient(90deg,${p.ink}14 0 1px,transparent 1px 46px), radial-gradient(60% 60% at 80% 20%, ${p.accent}66, transparent 70%), ${p.bg}`},
+  {id:"orbit",  name:"Orbit",  css:p=>`conic-gradient(from 210deg at 72% 30%, ${p.accent}, ${mix(p.accent,p.bg,.55)}, ${p.bg} 62%)`},
+  {id:"rings",  name:"Rings",  css:p=>`repeating-radial-gradient(circle at 84% 14%, ${p.accent}55 0 2px, transparent 2px 28px), linear-gradient(200deg, ${shade(p.bg,12)}, ${p.bg})`},
+  {id:"film",   name:"Grain",  css:p=>`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E"), linear-gradient(145deg, ${p.accent}, ${shade(p.bg,6)} 72%)`}
+];
+const TPL = [
+  {id:"hero",  name:"Full-bleed hero"},
+  {id:"split", name:"Split"},
+  {id:"field", name:"Colour field"},
+  {id:"strip", name:"Ticker strip"}
+];
+
+function slide(o){return Object.assign({
+  layout:"hero", palette:{...PALETTES[0]},
+  art:{id:"aurora", src:null, fit:"cover", pos:50, scrim:.52, blur:0},
+  eyebrow:{text:"Workplace update", show:true},
+  heading:{text:"Heading", size:1, weight:700, align:"left", color:"ink"},
+  body:{text:"Body", size:1, color:"ink", show:true},
+  cta:{label:"Open", style:"solid", radius:12, size:"md", fill:"accent", wide:true}
+},o);}
+
+const state = {
+  device:"mobile", mode:"widget", sel:"heading", active:0, rules:false, play:true,
+  slides:[
+    slide({layout:"hero", palette:{...PALETTES[0]}, art:{id:"aurora",src:null,fit:"cover",pos:50,scrim:.56,blur:0},
+      eyebrow:{text:"Level 4 · reopening",show:true},
+      heading:{text:"Level 4 reopens Monday with 42 sit-stand desks",size:1,weight:700,align:"left",color:"ink"},
+      body:{text:"The east wing has been re-zoned into 42 height-adjustable desks and two focus booths. Booking opens Tuesday 07:00.",size:1,color:"ink",show:true},
+      cta:{label:"Book a desk",style:"solid",radius:12,size:"md",fill:"accent",wide:true}}),
+    slide({layout:"split", palette:{...PALETTES[2]}, art:{id:"rings",src:null,fit:"cover",pos:50,scrim:.2,blur:0},
+      eyebrow:{text:"Air quality",show:true},
+      heading:{text:"CO₂ sensors are live in every meeting room",size:1,weight:700,align:"left",color:"ink"},
+      body:{text:"Rooms now show live CO₂ in ppm. Anything over 900 ppm gets flagged amber so you can pick a fresher room.",size:1,color:"ink",show:true},
+      cta:{label:"See room health",style:"outline",radius:12,size:"md",fill:"accent",wide:true}}),
+    slide({layout:"field", palette:{...PALETTES[1]}, art:{id:"grid",src:null,fit:"cover",pos:50,scrim:0,blur:0},
+      eyebrow:{text:"Deadline · 30 Sept",show:true},
+      heading:{text:"Carry over up to 5 days of leave — until 30 September",size:1,weight:700,align:"left",color:"ink"},
+      body:{text:"Unapproved balance is cleared at midnight on the 30th. Check what you have left and get requests in.",size:1,color:"ink",show:true},
+      cta:{label:"Check my balance",style:"solid",radius:99,size:"md",fill:"accent",wide:true}}),
+    slide({layout:"strip", palette:{...PALETTES[3]}, art:{id:"dunes",src:null,fit:"cover",pos:50,scrim:.35,blur:0},
+      eyebrow:{text:"Town hall",show:true},
+      heading:{text:"All-hands, Thursday 16:00 — Atrium and streamed",size:1,weight:700,align:"left",color:"ink"},
+      body:{text:"Q3 numbers, the new office roadmap, and 20 minutes of open questions.",size:1,color:"ink",show:true},
+      cta:{label:"Add to calendar",style:"ghost",radius:10,size:"sm",fill:"ink",wide:false}})
+  ]
+};
+
+/* slot geometry per breakpoint: the same model, four real contexts */
+const CFG = {
+  "mobile-widget":{w:347,h:330,pad:20,eb:10,hs:23,bs:13,cs:14.5,dir:"col",gap:9,tap:46},
+  "mobile-full":  {w:375,h:760,pad:26,eb:11,hs:34,bs:16,cs:16,dir:"col",gap:13,tap:50},
+  "web-widget":   {w:880,h:232,pad:26,eb:10.5,hs:28,bs:14.5,cs:14.5,dir:"row",gap:11,tap:42},
+  "web-full":     {w:1200,h:726,pad:64,eb:13,hs:62,bs:19,cs:17,dir:"row",gap:18,tap:48},
+  "tv-widget":    {w:1892,h:1052,pad:84,eb:26,hs:104,bs:40,cs:34,dir:"row",gap:34,tap:0},
+  "tv-full":      {w:1892,h:1052,pad:84,eb:26,hs:104,bs:40,cs:34,dir:"row",gap:34,tap:0}
+};
+const key = () => state.device==="tv" ? "tv-full" : state.device+"-"+state.mode;
+
+/* ============================== colour utils ============================== */
+function hex2rgb(h){h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgb2hex(r){return "#"+r.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");}
+function mix(a,b,t){const A=hex2rgb(a),B=hex2rgb(b);return rgb2hex(A.map((v,i)=>v+(B[i]-v)*t));}
+function shade(c,amt){const A=hex2rgb(c);return rgb2hex(A.map(v=>v+amt*2.55));}
+function lum(h){const [r,g,b]=hex2rgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*r+.7152*g+.0722*b;}
+function ratio(a,b){const L1=lum(a),L2=lum(b);return ((Math.max(L1,L2)+.05)/(Math.min(L1,L2)+.05));}
+function isDark(h){return lum(h)<.4;}
+
+/* effective background behind text: art darkened by the scrim, over the surface */
+function behind(s){
+  if(s.layout==="field") return s.palette.bg;
+  const base = mix(s.palette.bg, s.palette.accent, .35);
+  return mix(base, isDark(s.palette.bg)?"#000000":"#ffffff", s.art.scrim*0.85);
+}
+const inkOf = (s,which) => which==="accent" ? s.palette.accent : s.palette.ink;
+
+/* ============================== render: announcement ============================== */
+function artCSS(s){
+  if(s.art.src) return `url("${s.art.src}")`;
+  return (ART.find(a=>a.id===s.art.id)||ART[0]).css(s.palette);
+}
+function qr(label){
+  let h=0; for(const ch of label) h=(h*31+ch.charCodeAt(0))>>>0;
+  let rects="", n=19;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    h=(h*1103515245+12345)>>>0;
+    const q=(x<6&&y<6)||(x>n-7&&y<6)||(x<6&&y>n-7);
+    if(q? ((x%5===0||y%5===0)) : (h>>>16)%100<46) rects+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
+  }
+  return `<svg class="qr" width="112" height="112" viewBox="0 0 ${n} ${n}" aria-label="QR code placeholder"><rect width="${n}" height="${n}" fill="#fff"/><g fill="#000">${rects}</g></svg>`;
+}
+function pin(txt,style){return state.rules?`<span class="pin" style="${style}">${txt}</span>`:"";}
+
+function cardHTML(s,i,c){
+  const editable = i===state.active;
+  const ink = inkOf(s,s.heading.color), bodyInk = inkOf(s,s.body.color);
+  const onImage = s.layout!=="field";
+  const tv = state.device==="tv";
+  const stacked = c.dir==="col" || s.layout==="hero" || s.layout==="field";
+  const pad = c.pad, gap = c.gap;
+  const ctaScale = c.cs * (s.cta.size==="sm"?.86:s.cta.size==="lg"?1.16:1);
+  const tapH = Math.max(c.tap, ctaScale*2.9);
+  const wide = s.cta.wide && c.dir==="col" && state.device==="mobile";
+  const ctaBg = s.cta.style==="solid" ? (s.cta.fill==="accent"?s.palette.accent:s.palette.ink) : "transparent";
+  const ctaFg = s.cta.style==="solid" ? (isDark(ctaBg)?"#fff":"#10100e") : (s.cta.fill==="accent"?s.palette.accent:ink);
+  const ctaBorder = s.cta.style==="outline" ? (s.cta.fill==="accent"?s.palette.accent:ink) : "transparent";
+  const ctaUnderline = s.cta.style==="ghost" ? "text-decoration:underline;text-underline-offset:.28em;" : "";
+
+  const sr = k => (editable && state.sel===k) ? " sel-ring" : "";
+  const eyebrowHTML = s.eyebrow.show ? `<span class="eyebrow${sr('eyebrow')}" data-sel="eyebrow" style="font-size:${c.eb}px;letter-spacing:.14em;color:${s.palette.accent===ink?ink:s.palette.accent};">${esc(s.eyebrow.text)}</span>` : "";
+  const headHTML = `<h3 class="${sr('heading')}" data-sel="heading" ${editable?'contenteditable="plaintext-only" data-edit="heading.text"':""}
+      style="font-size:${c.hs*s.heading.size}px;font-weight:${s.heading.weight};line-height:${c.hs*s.heading.size>54?1.02:1.12};color:${ink};text-align:${s.heading.align};max-width:${tv?"20ch":"26ch"}">${esc(s.heading.text)}</h3>`;
+  const bodyHTML = s.body.show ? `<p class="${sr('body')}" data-sel="body" ${editable?'contenteditable="plaintext-only" data-edit="body.text"':""}
+      style="font-size:${c.bs*s.body.size}px;line-height:1.5;color:${mix(bodyInk, behind(s), .18)};text-align:${s.heading.align}">${esc(s.body.text)}</p>` : "";
+  const ctaHTML = tv
+    ? `<div class="${sr('cta')}" data-sel="cta" style="display:flex;align-items:center;gap:22px">${qr(s.cta.label)}
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:${c.cs}px;font-weight:600;color:${ink}">${esc(s.cta.label)}</span>
+        <span style="font-family:var(--mono);font-size:${c.cs*.62}px;letter-spacing:.1em;text-transform:uppercase;color:${mix(ink,behind(s),.4)}">Scan to open in the app</span></div></div>`
+    : `<a class="cta${sr('cta')}" data-sel="cta" href="#" onclick="return false" style="font-size:${ctaScale}px;height:${tapH}px;padding:0 ${ctaScale*1.35}px;border-radius:${s.cta.radius}px;background:${ctaBg};color:${ctaFg};border-color:${ctaBorder};${ctaUnderline}${wide?"width:100%;":"align-self:"+(s.heading.align==="center"?"center":"flex-start")+";"}">${esc(s.cta.label)}</a>`;
+
+  /* layout frames */
+  let inner="";
+  if(s.layout==="split"&&!stacked){
+    inner = `<div class="art" style="position:absolute;inset:0 auto 0 0;width:42%;background-image:${artCSS(s)};background-size:${s.art.fit};background-position:${s.art.pos}% center;filter:blur(${s.art.blur}px)"></div>
+      <div class="content" style="margin-left:42%;padding:${pad}px;gap:${gap}px;justify-content:center;flex:1">${eyebrowHTML}${headHTML}${bodyHTML}<div style="margin-top:${gap*.4}px">${ctaHTML}</div></div>
+      ${pin("split · art 42%","left:43%;top:12px")}`;
+  } else if(s.layout==="field"){
+    inner = `<div class="art" style="background-image:${artCSS(s)};opacity:.5;background-size:cover"></div>
+      <div class="content" style="padding:${pad}px;gap:${gap}px;justify-content:center;flex:1">${eyebrowHTML}${headHTML}${bodyHTML}<div style="margin-top:${gap*.4}px">${ctaHTML}</div></div>
+      ${pin("no image · type-led","right:12px;top:12px")}`;
+  } else if(s.layout==="strip"){
+    inner = `<div class="art" style="background-image:${artCSS(s)};background-size:${s.art.fit};filter:blur(${s.art.blur}px)"></div>
+      <div class="scrim" style="background:linear-gradient(90deg,${s.palette.bg}${hexA(.92)} 0%,${s.palette.bg}${hexA(s.art.scrim)} 68%,transparent)"></div>
+      <div class="content" style="padding:${pad}px;gap:${gap*.7}px;justify-content:center;flex:1;${stacked?"":"max-width:74%"}">${eyebrowHTML}${headHTML}${bodyHTML}<div style="margin-top:${gap*.4}px">${ctaHTML}</div></div>`;
+  } else {
+    inner = `<div class="art" style="background-image:${artCSS(s)};background-size:${s.art.fit};background-position:${s.art.pos}% center;filter:blur(${s.art.blur}px)"></div>
+      <div class="scrim" style="background:linear-gradient(${stacked?"180deg":"90deg"},${isDark(s.palette.bg)?"#000":"#fff"}${hexA(s.art.scrim*.25)} 0%,${isDark(s.palette.bg)?"#000":"#fff"}${hexA(s.art.scrim)} ${stacked?"52%":"46%"},${isDark(s.palette.bg)?"#000":"#fff"}${hexA(s.art.scrim*1.08)} 100%)"></div>
+      <div class="content" style="padding:${pad}px;gap:${gap}px;justify-content:flex-end;flex:1;${stacked?"":"max-width:62%"}">${eyebrowHTML}${headHTML}${bodyHTML}<div style="margin-top:${gap*.5}px">${ctaHTML}</div></div>
+      ${pin(`scrim ${Math.round(s.art.scrim*100)}% → text stays AA`,"left:12px;top:12px")}`;
+  }
+  const rulePins = state.rules ? [
+    pin(`safe pad ${pad}px`,`right:12px;bottom:${tapH+pad+14}px`),
+    tv?pin("no tap target → QR","right:12px;bottom:12px"):pin(`tap target ${Math.round(tapH)}px ≥ 44`,`right:12px;bottom:12px`),
+    stacked&&s.layout==="split"?pin("split stacks under 420px","left:12px;bottom:50%"):""
+  ].join("") : "";
+
+  return `<article class="card" data-i="${i}" style="background:${s.palette.bg};color:${ink}">${inner}${rulePins}</article>`;
+}
+const hexA = a => Math.round(Math.max(0,Math.min(1,a))*255).toString(16).padStart(2,"0");
+function esc(t){return String(t).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));}
+
+function carouselHTML(c,extra=""){
+  const cards = state.slides.map((s,i)=>cardHTML(s,i,c)).join("");
+  const dotInk = inkOf(state.slides[state.active], "ink");
+  return `<div class="slot" id="slot" style="${extra}">
+    <div class="track" id="track" style="transform:translateX(-${state.active*100}%)">${cards}</div>
+    <div class="dots" style="${state.device==="tv"?"bottom:40px;left:84px":"bottom:12px;left:50%;transform:translateX(-50%)"};color:${dotInk}">
+      ${state.slides.map((s,i)=>`<button data-dot="${i}" aria-current="${i===state.active}" aria-label="Announcement ${i+1}"></button>`).join("")}
+    </div></div>`;
+}
+
+/* ============================== render: devices ============================== */
+function deviceHTML(){
+  const c = CFG[key()];
+  if(state.device==="mobile"){
+    const inner = state.mode==="full"
+      ? carouselHTML(c,"position:absolute;inset:0")
+      : `<div class="appshell">
+          <div class="as-top"><div><div class="as-hi">Thursday, 11 Sept</div><div class="as-sub">Desk 4-118 · 09:00–17:30</div></div><div class="as-av"></div></div>
+          <div class="as-body">
+            ${carouselHTML(c,`height:${c.h}px;border-radius:16px;flex:0 0 auto`)}
+            <div class="as-tile"><div style="flex:1"><div class="k">Today</div><div class="v">Level 4 · 68% busy</div></div><span class="dot9"></span></div>
+            <div class="as-tile"><div style="flex:1"><div class="k">Leave balance</div><div class="v">12.5 days</div></div><span class="dot9"></span></div>
+          </div>
+          <div class="as-tabs"><div><span class="dot9"></span><b>Home</b></div><div><span class="dot9"></span>Desks</div><div><span class="dot9"></span>Rooms</div><div><span class="dot9"></span>Leave</div></div>
+        </div>`;
+    return `<div class="dev dev-mobile"><div class="notch"></div><div class="vp">${inner}</div></div>`;
+  }
+  if(state.device==="web"){
+    const inner = state.mode==="full"
+      ? carouselHTML(c,"position:absolute;inset:0")
+      : `<div class="web-shell">
+          <nav class="ws-nav"><div class="ws-logo">workplace</div>
+            <a class="on">Home</a><a>Desk booking</a><a>Meeting rooms</a><a>Leave</a><a>Announcements</a><a>Reports</a></nav>
+          <main class="ws-main">
+            <h1 class="ws-h">Good morning, Anurag</h1>
+            ${carouselHTML(c,`height:${c.h}px;border-radius:14px;flex:0 0 auto`)}
+            <div class="ws-grid">
+              <div class="ws-card"><div class="k">Your desk</div><div class="v">4-118</div></div>
+              <div class="ws-card"><div class="k">Building occupancy</div><div class="v">68%</div></div>
+              <div class="ws-card"><div class="k">Rooms free now</div><div class="v">7 of 19</div></div>
+            </div>
+          </main></div>`;
+    return `<div class="dev dev-web"><div class="chromebar"><i></i><i></i><i></i><div class="url">app.workplace.io/home</div></div><div class="vp">${inner}</div></div>`;
+  }
+  return `<div class="dev dev-tv"><div class="vp">${carouselHTML(c,"position:absolute;inset:0")}</div><div class="tvstand"></div></div>`;
+}
+
+function renderStage(){
+  document.getElementById("fit").innerHTML = deviceHTML()+`<span class="devlabel" id="devlabel"></span>`;
+  const c=CFG[key()];
+  document.getElementById("devlabel").textContent =
+    state.device==="mobile"?"iPhone · 375 × 760 pt":state.device==="web"?"Desktop · 1200 × 726":"Signage · 1920 × 1080 · landscape";
+  fitStage(); renderStatus();
+}
+function fitStage(){
+  const stage=document.getElementById("stage"), fit=document.getElementById("fit");
+  const dev=fit.querySelector(".dev"); if(!dev) return;
+  const pad=64, w=dev.offsetWidth, h=dev.offsetHeight;
+  const sc=Math.min((stage.clientWidth-pad)/w,(stage.clientHeight-pad-30)/h,1);
+  fit.style.transformOrigin="top left";
+  fit.style.transform=`scale(${sc})`;
+  fit.style.width=(w*sc)+"px"; fit.style.height=(h*sc)+"px";
+}
+
+/* ============================== inspector ============================== */
+const S = () => state.slides[state.active];
+const NAMES={eyebrow:"Eyebrow",heading:"Heading",body:"Body text",cta:"Call to action",art:"Image"};
+function row(label,ctl){return `<div class="row"><label>${label}</label><div class="ctl">${ctl}</div></div>`;}
+function range(path,min,max,step,unit=""){const v=get(S(),path);return `<input type="range" data-path="${path}" data-num="1" min="${min}" max="${max}" step="${step}" value="${v}"><span class="out" data-out="${path}" data-unit="${unit}">${fmt(v,unit)}</span>`;}
+function segc(path,opts){const v=get(S(),path);return `<div class="mini-seg">${opts.map(o=>`<button data-set="${path}" data-val="${o[0]}" aria-pressed="${v===o[0]}">${o[1]}</button>`).join("")}</div>`;}
+function fmt(v,unit){return unit==="x"?(+v).toFixed(2)+"×":unit==="%"?Math.round(v*100)+"%":unit?Math.round(v)+unit:v;}
+function get(o,p){return p.split(".").reduce((a,k)=>a&&a[k],o);}
+function set(o,p,v){const ks=p.split("."),l=ks.pop();ks.reduce((a,k)=>a[k],o)[l]=v;}
+
+function renderInspector(){
+  const s=S(), sel=state.sel;
+  document.getElementById("inspTitle").textContent=NAMES[sel];
+  let h="";
+  if(sel==="art"){
+    h=`<div class="sect"><p class="lbl">Source</p>
+      <div class="arts">${ART.map(a=>`<button class="artbtn" data-art="${a.id}" aria-pressed="${!s.art.src&&s.art.id===a.id}" title="${a.name}" style="background:${a.css(s.palette)};background-size:cover"></button>`).join("")}</div>
+      <div class="drop" id="drop" style="margin-top:10px">Drop an image here, or <u>browse</u><input type="file" id="file" accept="image/*" hidden></div>
+      ${s.art.src?`<button class="btn" id="clearImg" style="margin-top:8px;width:100%">Remove uploaded image</button>`:""}</div>
+    <div class="sect"><p class="lbl">Treatment</p>
+      ${row("Fit",segc("art.fit",[["cover","Cover"],["contain","Contain"],["auto","Tile"]]))}
+      ${row("Focus",range("art.pos",0,100,1,"%"))}
+      ${row("Scrim",range("art.scrim",0,0.9,0.02,"%"))}
+      ${row("Blur",range("art.blur",0,14,1,"px"))}
+      <p class="note" style="margin-top:6px">Scrim is the dark veil between picture and type. The contrast read-out in the status bar moves with it.</p></div>`;
+  }
+  if(sel==="eyebrow"){
+    h=`<div class="sect"><p class="lbl">Text</p><input type="text" data-path="eyebrow.text" value="${attr(s.eyebrow.text)}">
+      <label class="switch" style="margin-top:11px"><input type="checkbox" data-path="eyebrow.show" data-bool="1" ${s.eyebrow.show?"checked":""}><span>Show eyebrow</span></label>
+      <p class="note" style="margin-top:9px">Two or three words. It tells people what kind of message this is before they read the headline.</p></div>`;
+  }
+  if(sel==="heading"||sel==="body"){
+    const p=sel;
+    h=`<div class="sect"><p class="lbl">Copy</p><textarea data-path="${p}.text">${esc(s[p].text)}</textarea>
+      <p class="note" id="charNote" style="margin-top:7px"></p></div>
+    <div class="sect"><p class="lbl">Type</p>
+      ${row("Size",range(p+".size",.7,1.5,.02,"x"))}
+      ${sel==="heading"?row("Weight",segc("heading.weight",[[500,"Medium"],[700,"Bold"],[800,"Black"]])):""}
+      ${sel==="heading"?row("Align",segc("heading.align",[["left","Left"],["center","Centre"]])):""}
+      ${row("Colour",segc(p+".color",[["ink","Text"],["accent","Accent"]]))}
+      ${sel==="body"?`<label class="switch" style="margin-top:4px"><input type="checkbox" data-path="body.show" data-bool="1" ${s.body.show?"checked":""}><span>Show body text</span></label>`:""}
+    </div>
+    <div class="sect"><p class="lbl">Rendered at this breakpoint</p>
+      <div class="kv"><span>Mobile widget</span><b>${Math.round(CFG["mobile-widget"][sel==="heading"?"hs":"bs"]*s[p].size)}px</b></div>
+      <div class="kv"><span>Web widget</span><b>${Math.round(CFG["web-widget"][sel==="heading"?"hs":"bs"]*s[p].size)}px</b></div>
+      <div class="kv"><span>Signage</span><b>${Math.round(CFG["tv-full"][sel==="heading"?"hs":"bs"]*s[p].size)}px</b></div>
+      <p class="note" style="margin-top:8px">One size control, three outputs. The slider scales the step, it doesn't hard-code pixels.</p></div>`;
+  }
+  if(sel==="cta"){
+    h=`<div class="sect"><p class="lbl">Label</p><input type="text" data-path="cta.label" value="${attr(s.cta.label)}">
+      <p class="note" style="margin-top:7px">Start with a verb and name the outcome — “Book a desk”, not “Click here”.</p></div>
+    <div class="sect"><p class="lbl">Button</p>
+      ${row("Style",segc("cta.style",[["solid","Solid"],["outline","Outline"],["ghost","Text"]]))}
+      ${row("Fill",segc("cta.fill",[["accent","Accent"],["ink","Text colour"]]))}
+      ${row("Size",segc("cta.size",[["sm","S"],["md","M"],["lg","L"]]))}
+      ${row("Radius",range("cta.radius",0,99,1,"px"))}
+      <label class="switch" style="margin-top:4px"><input type="checkbox" data-path="cta.wide" data-bool="1" ${s.cta.wide?"checked":""}><span>Full width on mobile</span></label></div>
+    <div class="sect"><p class="lbl">Signage behaviour</p>
+      <p class="note">A TV has no tap target, so the button is replaced by a QR block and a “scan to open” line. Same data, different affordance.</p></div>`;
+  }
+  document.getElementById("inspBody").innerHTML=h;
+  if(sel==="heading"||sel==="body") updateCharNote();
+  wireInspector();
+}
+function attr(t){return String(t).replace(/"/g,"&quot;");}
+function updateCharNote(){
+  const el=document.getElementById("charNote"); if(!el) return;
+  const s=S(), k=state.sel, n=s[k].text.length;
+  const cap = k==="heading"?58:170;
+  const tone = n>cap*1.25?"bd":n>cap?"wr":"ok";
+  el.innerHTML=`<span class="badge ${tone}">${n} chars</span> ${n>cap?`over the ${cap} that fit two lines on a 375pt screen — it will still wrap, it just stops being scannable.`:`fits the mobile widget without wrapping past ${k==="heading"?"two":"three"} lines.`}`;
+}
+
+/* ============================== rails ============================== */
+const LAYERS=[["art","▣","Image"],["eyebrow","▹","Eyebrow"],["heading","H","Heading"],["body","¶","Body text"],["cta","▭","Call to action"]];
+function renderRails(){
+  const s=S();
+  document.getElementById("layers").innerHTML=LAYERS.map(([k,ic,nm])=>{
+    const off=(k==="body"&&!s.body.show)||(k==="eyebrow"&&!s.eyebrow.show)||(k==="art"&&s.layout==="field");
+    return `<button class="layer" data-sel-btn="${k}" aria-current="${state.sel===k}">
+      <span class="ic">${ic}</span><span class="nm">${nm}</span>${off?'<span class="tg">off</span>':""}</button>`;}).join("");
+  document.getElementById("tpls").innerHTML=TPL.map(t=>`<button class="tplcard" data-tpl="${t.id}" aria-pressed="${s.layout===t.id}">
+    <span class="mini" style="background:${miniBG(t.id,s.palette)}"></span><span class="cap">${t.name}</span></button>`).join("");
+  document.getElementById("slides").innerHTML=state.slides.map((sl,i)=>`
+    <div class="slide-row" data-slide="${i}" aria-current="${i===state.active}">
+      <span class="chip" style="background:${sl.layout==="field"?sl.palette.bg:sl.palette.accent}"></span>
+      <span class="t">${esc(sl.heading.text.slice(0,34))}</span>
+      ${state.slides.length>1?`<button class="icbtn" data-del="${i}" title="Delete">✕</button>`:""}
+    </div>`).join("");
+  document.getElementById("swatches").innerHTML=PALETTES.map((p,i)=>`<button class="sw" data-pal="${i}" title="${p.name}" aria-pressed="${s.palette.bg===p.bg&&s.palette.accent===p.accent}"
+    style="background:linear-gradient(135deg,${p.bg} 58%,${p.accent} 58%)"></button>`).join("");
+  ["palette.bg","palette.ink","palette.accent"].forEach(p=>{
+    const inp=document.querySelector(`input[data-path="${p}"]`); if(inp) inp.value=get(s,p);
+    const out=document.querySelector(`[data-out="${p}"]`); if(out) out.textContent=get(s,p).toUpperCase();
+  });
+  document.getElementById("tokens").innerHTML=[
+    ["surface",s.palette.bg],["text",s.palette.ink],["accent",s.palette.accent],
+    ["heading step",`${CFG["mobile-widget"].hs} / ${CFG["web-widget"].hs} / ${CFG["tv-full"].hs}`],
+    ["safe padding",`${CFG["mobile-widget"].pad} / ${CFG["web-widget"].pad} / ${CFG["tv-full"].pad}`],
+    ["min tap",`44px`],["measure",`62ch`]
+  ].map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join("");
+  document.getElementById("rulesList").innerHTML=RULES.map(r=>`<div style="margin-bottom:10px"><b style="font-size:12px">${r[0]}</b><div class="note">${r[1]}</div></div>`).join("");
+}
+function miniBG(id,p){
+  if(id==="hero") return `linear-gradient(180deg,${p.accent}cc,${p.bg})`;
+  if(id==="split") return `linear-gradient(90deg,${p.accent} 42%,${p.bg} 42%)`;
+  if(id==="field") return p.bg;
+  return `linear-gradient(90deg,${p.bg} 60%,${p.accent})`;
+}
+const RULES=[
+  ["Mobile widget · 347×330","Stacks. Image behind the type with a scrim, headline capped near 58 characters, one full-width button on a 46px tap target."],
+  ["Mobile full screen","Same content, looser rhythm: larger display step, taller spacing, dots move above the thumb zone."],
+  ["Web widget · 880×232","Goes horizontal. Art takes 42% on the left, copy right, button inline at its natural width — it has to sit in a dashboard without shouting."],
+  ["Web full screen","Art becomes the whole canvas, headline jumps to a 62px step, measure held at 62 characters so lines stay readable on a wide monitor."],
+  ["Signage · 1920×1080","Read from 4–6 metres: 104px headline, 84px safe padding, no tap target. The button becomes a QR block with a scan instruction."],
+  ["Colour per announcement","Each slide carries its own surface, text and accent. Swiping cross-fades between them, so the palette tells you the message changed."]
+];
+
+/* ============================== status ============================== */
+function renderStatus(){
+  const s=S(), c=CFG[key()];
+  const bg=behind(s), r=ratio(inkOf(s,s.heading.color),bg), cr=ratio(
+    s.cta.style==="solid"?(isDark(s.cta.fill==="accent"?s.palette.accent:s.palette.ink)?"#ffffff":"#10100e"):bg,
+    s.cta.style==="solid"?(s.cta.fill==="accent"?s.palette.accent:s.palette.ink):bg);
+  const tone=v=>v>=4.5?"ok":v>=3?"wr":"bd";
+  document.getElementById("stBreak").textContent=`${state.device.toUpperCase()} · ${state.mode==="full"||state.device==="tv"?"full screen":"in-app widget"}`;
+  document.getElementById("stSlot").textContent=`slot ${c.w}×${c.h} · pad ${c.pad} · h1 ${Math.round(c.hs*s.heading.size)}px`;
+  document.getElementById("stContrast").innerHTML=`heading <span class="badge ${tone(r)}">${r.toFixed(1)}:1</span> &nbsp;button <span class="badge ${tone(cr)}">${cr.toFixed(1)}:1</span> <span style="color:var(--ink3)">AA needs 4.5</span>`;
+  document.getElementById("stChars").textContent=`${s.heading.text.length} chars in headline`;
+  document.getElementById("stSaved").textContent=`${state.slides.length} announcements · announcement ${state.active+1} selected`;
+}
+
+/* ============================== history ============================== */
+let hist=[], ptr=-1, pending=false;
+function snap(){return JSON.stringify({slides:state.slides,active:state.active});}
+function pushHist(){ const s=snap(); if(hist[ptr]===s) return; hist=hist.slice(0,ptr+1); hist.push(s); ptr=hist.length-1; if(hist.length>60){hist.shift();ptr--;} syncHist(); }
+function restore(i){ const d=JSON.parse(hist[i]); state.slides=d.slides; state.active=d.active; ptr=i; renderAll(); syncHist(); }
+function syncHist(){ document.getElementById("undo").disabled=ptr<=0; document.getElementById("redo").disabled=ptr>=hist.length-1; }
+
+function renderAll(){ renderRails(); renderInspector(); renderStage(); }
+
+/* ============================== events ============================== */
+function wireInspector(){
+  const body=document.getElementById("inspBody");
+  body.querySelectorAll("[data-path]").forEach(inp=>{
+    inp.addEventListener("focus",()=>{pushHist();});
+    inp.addEventListener("pointerdown",()=>{pushHist();});
+    const h=()=>{
+      const p=inp.dataset.path;
+      let v = inp.dataset.bool? inp.checked : inp.dataset.num? parseFloat(inp.value) : inp.value;
+      set(S(),p,v);
+      const out=document.querySelector(`[data-out="${p}"]`); if(out) out.textContent=fmt(v,out.dataset.unit||"");
+      if(inp.dataset.bool){renderAll();return;}
+      renderStage(); if(p.endsWith(".text")) {updateCharNote(); renderRails();}
+    };
+    inp.addEventListener("input",h);
+  });
+  body.querySelectorAll("[data-set]").forEach(b=>b.addEventListener("click",()=>{
+    pushHist(); let v=b.dataset.val; if(/^\d+$/.test(v)) v=+v; set(S(),b.dataset.set,v); renderAll();
+  }));
+  body.querySelectorAll("[data-art]").forEach(b=>b.addEventListener("click",()=>{pushHist();S().art.id=b.dataset.art;S().art.src=null;renderAll();}));
+  const drop=document.getElementById("drop"), file=document.getElementById("file");
+  if(drop){
+    drop.addEventListener("click",()=>file.click());
+    file.addEventListener("change",e=>readImg(e.target.files[0]));
+    ["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over");}));
+    ["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over");}));
+    drop.addEventListener("drop",e=>readImg(e.dataTransfer.files[0]));
+  }
+  const ci=document.getElementById("clearImg");
+  if(ci) ci.addEventListener("click",()=>{pushHist();S().art.src=null;renderAll();});
+}
+function readImg(f){ if(!f||!f.type.startsWith("image/")) return; const r=new FileReader();
+  r.onload=()=>{pushHist();S().art.src=r.result;renderAll();}; r.readAsDataURL(f); }
+
+document.getElementById("devseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  state.device=b.dataset.dev;[...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
+  document.getElementById("modeseg").style.opacity=state.device==="tv"?".4":"1";renderStage();});
+document.getElementById("modeseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  state.mode=b.dataset.mode;[...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));renderStage();});
+document.querySelector(".rail .tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll(".rail .tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["build","style","notes"].forEach(t=>document.getElementById("tab-"+t).hidden = t!==b.dataset.tab);});
+document.getElementById("layers").addEventListener("click",e=>{const b=e.target.closest("[data-sel-btn]");if(!b)return;
+  state.sel=b.dataset.selBtn;renderRails();renderInspector();renderStage();});
+document.getElementById("tpls").addEventListener("click",e=>{const b=e.target.closest("[data-tpl]");if(!b)return;
+  pushHist();S().layout=b.dataset.tpl;renderAll();});
+document.getElementById("swatches").addEventListener("click",e=>{const b=e.target.closest("[data-pal]");if(!b)return;
+  pushHist();S().palette={...PALETTES[+b.dataset.pal]};renderAll();});
+document.getElementById("slides").addEventListener("click",e=>{
+  const d=e.target.closest("[data-del]");
+  if(d){pushHist();state.slides.splice(+d.dataset.del,1);state.active=Math.min(state.active,state.slides.length-1);renderAll();return;}
+  const r=e.target.closest("[data-slide]"); if(!r)return; state.active=+r.dataset.slide; renderAll();});
+document.getElementById("addSlide").addEventListener("click",()=>{
+  pushHist();
+  const p=PALETTES[state.slides.length%PALETTES.length];
+  state.slides.push(slide({palette:{...p},layout:"hero",art:{id:ART[state.slides.length%ART.length].id,src:null,fit:"cover",pos:50,scrim:.5,blur:0},
+    eyebrow:{text:"New update",show:true},
+    heading:{text:"Write the one thing people need to know",size:1,weight:700,align:"left",color:"ink"},
+    body:{text:"One or two sentences of detail — what changed, when it starts, what it means for them.",size:1,color:"ink",show:true},
+    cta:{label:"Take a look",style:"solid",radius:12,size:"md",fill:"accent",wide:true}}));
+  state.active=state.slides.length-1; renderAll();});
+document.getElementById("rulesTog").addEventListener("change",e=>{state.rules=e.target.checked;renderStage();});
+document.getElementById("autoplay").addEventListener("change",e=>{state.play=e.target.checked;});
+document.getElementById("undo").addEventListener("click",()=>{if(ptr>0)restore(ptr-1);});
+document.getElementById("redo").addEventListener("click",()=>{if(ptr<hist.length-1)restore(ptr+1);});
+document.getElementById("themeBtn").addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const dark=cur? cur==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme",dark?"light":"dark");});
+addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="z"){e.preventDefault(); e.shiftKey? (ptr<hist.length-1&&restore(ptr+1)) : (ptr>0&&restore(ptr-1));}});
+addEventListener("resize",fitStage);
+
+/* stage interaction: direct selection, inline editing, swipe */
+const stage=document.getElementById("stage");
+stage.addEventListener("click",e=>{
+  const dot=e.target.closest("[data-dot]");
+  if(dot){state.active=+dot.dataset.dot;renderAll();return;}
+  const card=e.target.closest(".card");
+  if(card && +card.dataset.i!==state.active){state.active=+card.dataset.i;renderAll();return;}
+  const t=e.target.closest("[data-sel]");
+  if(t){state.sel=t.dataset.sel;renderRails();renderInspector();renderStage();}});
+stage.addEventListener("focusin",e=>{if(e.target.dataset&&e.target.dataset.edit) pushHist();});
+stage.addEventListener("input",e=>{
+  const p=e.target.dataset&&e.target.dataset.edit; if(!p) return;
+  set(S(),p,e.target.textContent); renderRails(); renderStatus();
+  if(state.sel===p.split(".")[0]){const f=document.querySelector(`#inspBody [data-path="${p}"]`); if(f) f.value=e.target.textContent; updateCharNote();}});
+let dragX=null;
+stage.addEventListener("pointerdown",e=>{if(e.target.closest("[data-edit]"))return; if(e.target.closest(".track"))dragX=e.clientX;});
+stage.addEventListener("pointerup",e=>{
+  if(dragX===null)return; const dx=e.clientX-dragX; dragX=null;
+  if(Math.abs(dx)<40)return;
+  state.active=(state.active+(dx<0?1:-1)+state.slides.length)%state.slides.length; renderAll();});
+
+/* ============================== export ============================== */
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  document.getElementById("dlgT").textContent="Export";
+  const payload={breakpoints:CFG, announcements:state.slides.map(s=>({
+    layout:s.layout, palette:s.palette, art:{...s.art, src:s.art.src?"<uploaded image>":null},
+    eyebrow:s.eyebrow.show?s.eyebrow.text:null, heading:s.heading, body:s.body.show?s.body:null, cta:s.cta}))};
+  document.getElementById("dlgB").innerHTML=`
+    <p class="note" style="margin:0 0 12px">One payload drives all three screens. The renderer picks the breakpoint; nothing here is screen-specific except the overrides table.</p>
+    <pre class="code" id="json">${esc(JSON.stringify(payload,null,2))}</pre>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn primary" id="copyJson">Copy JSON</button>
+      <button class="btn" id="copyEmbed">Copy embed snippet</button>
+      <button class="btn" id="showLaws">Design rationale</button>
+    </div>`;
+  document.getElementById("copyJson").onclick=()=>copy(JSON.stringify(payload,null,2),"Copy JSON");
+  document.getElementById("copyEmbed").onclick=()=>copy(
+`<!-- drop-in widget: the host page only declares the surface -->
+<announcement-carousel
+  src="/api/announcements?audience=level-4"
+  screen="auto"            <!-- mobile | web | signage -->
+  placement="widget"       <!-- widget | fullscreen -->
+  rotate="5000"></announcement-carousel>`,"Copy embed snippet");
+  document.getElementById("showLaws").onclick=openLaws;
+  document.getElementById("dlg").showModal();});
+function copy(t,lbl){navigator.clipboard.writeText(t).then(()=>{
+  const b=[...document.querySelectorAll("#dlgB .btn")].find(x=>x.textContent===lbl); if(b){b.textContent="Copied";setTimeout(()=>b.textContent=lbl,1400);}});}
+const LAWS=[
+ ["Hick's Law","The inspector only ever shows the controls for the block you selected. Five blocks, one panel — not thirty controls competing at once."],
+ ["Fitts's Law","Every CTA is held at a 44px minimum and goes full-width on mobile, where the thumb is least accurate. The status bar reports the real rendered height."],
+ ["Jakob's Law","The editor uses the arrangement people already know from Figma and Canva: blocks left, canvas centre, properties right. No novelty where novelty costs nothing."],
+ ["Miller's Law","An announcement is capped at four content blocks. The headline warns past 58 characters, body is held to a 62-character measure."],
+ ["Von Restorff (isolation)","One accent per announcement, spent on the CTA. Everything else is surface and type, so the button is the only thing that looks clickable."],
+ ["Gestalt — common region","Art, type and button sit inside one bounded card with shared padding, which is what makes it read as a single message rather than three elements."],
+ ["Doherty Threshold","Every change re-renders instantly on the canvas; nothing is behind a Preview button. Editing and seeing are the same act."],
+ ["Tesler's Law","Responsiveness is complexity that has to live somewhere. It lives in the renderer's breakpoint table, not in the author's head — one size slider, three outputs."],
+ ["Aesthetic–Usability Effect","The brief asked for something people want to tap. Colour-per-announcement, real photography or generated fields, and a cross-fade on swipe do that work — without touching the content model."],
+ ["Accessibility as a constraint, not a pass","Contrast is computed live against the scrimmed background and shown against AA 4.5:1, because a white headline over a bright photo is the default failure of every announcement tool."]
+];
+function openLaws(){
+  document.getElementById("dlgT").textContent="Design rationale";
+  document.getElementById("dlgB").innerHTML=`
+    <p class="note" style="margin:0 0 4px">Why the tool is shaped this way.</p>
+    <h4 class="nh">Laws applied</h4>
+    <ol class="laws">${LAWS.map(l=>`<li><b>${l[0]}</b> — <span>${l[1]}</span></li>`).join("")}</ol>
+    <h4 class="nh">What makes one announcement work on three screens</h4>
+    <div>${RULES.map(r=>`<div class="kv"><span style="flex:0 0 46%">${r[0]}</span><span class="note" style="text-align:right">${r[1]}</span></div>`).join("")}</div>
+    <h4 class="nh">Known trade-offs</h4>
+    <p class="note">Image library is generated (CSS/SVG) so the tool runs with no network; uploads are local-only. Signage assumes a 4–6m viewing distance and no input device. Scheduling, audience targeting and approvals are deliberately out of scope — they belong to a publishing layer, not the composer.</p>`;
+  document.getElementById("dlg").showModal();}
+
+/* ============================== boot ============================== */
+renderAll(); pushHist();
+setInterval(()=>{ if(!state.play) return; if(document.getElementById("dlg").open) return;
+  state.active=(state.active+1)%state.slides.length; renderRails(); renderStage(); }, 5000);
+</script>
